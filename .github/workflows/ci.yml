@@ -27,6 +27,15 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Dependency audit (fail on critical)
+        run: npm audit --audit-level=critical
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
       - name: Syntax check (Worker + maintenance scripts)
         run: |
           node --check src/worker.js

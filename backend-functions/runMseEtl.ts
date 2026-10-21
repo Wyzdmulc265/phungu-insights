@@ -16,9 +16,19 @@ function extractSymbol(rowHtml: string): string | null {
   return match[1].trim();
 }
 
+function stripTags(html: string): string {
+  // fixpoint loop: prevents "<scr<script>ipt>" reassembling into "<script>"
+  let prev: string;
+  do {
+    prev = html;
+    html = html.replace(/<[^>]*>/g, "");
+  } while (html !== prev);
+  return html.replace(/<|>/g, "");
+}
+
 function extractRightCells(rowHtml: string): string[] {
   const matches = [...rowHtml.matchAll(/<td\s+class="text-right[^"]*">(.*?)<\/td>/gs)];
-  return matches.map(m => m[1].replace(/<[^>]*>/g, "").trim());
+  return matches.map(m => stripTags(m[1]).trim());
 }
 
 function extractTradeDate(html: string): string {

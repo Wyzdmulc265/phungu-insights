@@ -20,9 +20,19 @@ function extractSymbol(rowHtml) {
   const m = rowHtml.match(/<a[^>]*>\s*(.*?)\s*<\/a>/s);
   return m ? m[1].trim() : null;
 }
+function stripTags(html) {
+  // fixpoint loop: prevents "<scr<script>ipt>" reassembling into "<script>"
+  let prev;
+  do {
+    prev = html;
+    html = html.replace(/<[^>]*>/g, "");
+  } while (html !== prev);
+  return html.replace(/<|>/g, "");
+}
+
 function extractRightCells(rowHtml) {
   return [...rowHtml.matchAll(/<td\s+class="text-right[^"]*">(.*?)<\/td>/gs)]
-    .map(m => m[1].replace(/<[^>]*>/g, "").trim());
+    .map(m => stripTags(m[1]).trim());
 }
 function extractTradeDate(html, fallback) {
   const m = html.match(/Updated on:\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
@@ -167,10 +177,10 @@ async function runEtl(env, trigger) {
   } catch (err) {
     try {
       await sql`INSERT INTO mse_etl_log (run_date, status, records_processed, duration_seconds, error_message, trigger)
-                VALUES (NOW(), 'error', 0, ${Math.round((Date.now() - t0) / 1000)}, ${String(err)}, ${trigger})`;
+                VALUES (NOW(), 'error', 0, ${Math.round((Date.now() - t0) / 1000)}, ${err instanceof Error ? err.message : String(err)}, ${trigger})`;
     } catch {}
     await sendTelegram(env, `❌ <b>MSE ETL FAILED</b> (Worker)\n⚠️ ${err}`);
-    return { status: "error", error: String(err) };
+    return { status: "error", error: err instanceof Error ? err.message : String(err) };
   }
 }
 

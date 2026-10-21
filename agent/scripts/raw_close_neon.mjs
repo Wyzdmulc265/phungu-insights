@@ -1,0 +1,13 @@
+import { neon } from '@neondatabase/serverless';
+import fs from 'fs';
+const env = fs.readFileSync('/app/.agents/.env', 'utf8');
+const m = env.match(/^export DATABASE_URL=\$'([^']+)'/m);
+const sql = neon(m[1]);
+const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name='mse_stock_prices' AND column_name='raw_close'`;
+if (cols.length === 0) await sql`ALTER TABLE mse_stock_prices ADD COLUMN raw_close NUMERIC(20,2)`;
+const upd = await sql`UPDATE mse_stock_prices SET raw_close = ROUND(close_price * 35, 2) WHERE symbol='PCL' AND trade_date < '2026-09-07'`;
+console.log('neon pre-split rows backfilled:', upd.count);
+const chk = await sql`SELECT count(*)::int AS n FROM mse_stock_prices WHERE symbol='PCL' AND raw_close IS NOT NULL`;
+console.log('rows with raw_close:', chk[0].n);
+const sample = await sql`SELECT trade_date, close_price, raw_close FROM mse_stock_prices WHERE symbol='PCL' ORDER BY trade_date ASC LIMIT 2`;
+console.log('earliest:', sample);

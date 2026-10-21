@@ -1,0 +1,7 @@
+{
+  "name": "mse-etl-worker",
+  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "0.10.0"
+  }
+}

@@ -1,0 +1,8 @@
+name = "mse-etl"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[triggers]
+crons = ["0 7 * * 1-5", "0 11 * * 1-5", "30 13 * * 1-5"]

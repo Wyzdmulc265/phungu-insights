@@ -106,13 +106,19 @@ Deno.serve(async (req) => {
     // no body is fine
   }
 
+  const sources = [
+    { name: "africanmarkets", fetch: fetchAfricanMarkets },
+    { name: "mansa-dividends", fetch: fetchMansaDividends },
+  ];
   const sourceErrors: string[] = [];
   let found: any[] = [];
-  for (const fetcher of [fetchAfricanMarkets, fetchMansaDividends]) {
+  for (const src of sources) {
     try {
-      found = found.concat(await fetcher());
+      found = found.concat(await src.fetch());
     } catch (e) {
-      sourceErrors.push((e instanceof Error ? e.message : String(e)).slice(0, 100));
+      // full detail goes to server logs only; the response carries no error text
+      console.error(`source ${src.name} failed:`, e);
+      sourceErrors.push(`${src.name}: unavailable (${e instanceof Error ? e.name : "failed"})`);
     }
   }
 
@@ -170,7 +176,8 @@ Deno.serve(async (req) => {
         telegram = "missing secrets";
       }
     } catch (e) {
-      telegram = `error: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}`;
+      console.error("telegram send failed:", e);
+      telegram = "send failed";
     }
   }
 

@@ -35,6 +35,7 @@
 <script>
 (async () => {
   const sym = new URLSearchParams(location.search).get('sym') || 'AIRTEL';
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const res = await fetch('/api/stock/' + sym);
   let rows = await res.json();
   if (res.status === 404) {
@@ -68,8 +69,8 @@
   const cls = v => v == null ? '' : (v >= 0 ? 'up' : 'down');
 
   document.getElementById('app').innerHTML = `
-    <h1>${c.name} <span class="badge">${sym}</span>${hasRaw && splitInfo ? ` <span class="badge" style="color:var(--accent);border-color:var(--accent)">${splitInfo.ratio} share split · ${splitInfo.date}</span>` : ''}</h1>
-    <p class="sub">${c.sector} · Prices as of ${last.d.slice(0,10)} · archive since ${rows[0].d.slice(0,10)}</p>
+    <h1>${esc(c.name)} <span class="badge">${esc(sym)}</span>${hasRaw && splitInfo ? ` <span class="badge" style="color:var(--accent);border-color:var(--accent)">${esc(splitInfo.ratio)} share split · ${esc(splitInfo.date)}</span>` : ''}</h1>
+    <p class="sub">${esc(c.sector)} · Prices as of ${esc(last.d.slice(0,10))} · archive since ${esc(rows[0].d.slice(0,10))}</p>
 
     <div class="grid">
       <div class="card"><div class="label">Last Close (MK)</div><div class="value">${Number(last.c).toLocaleString()}</div><div class="label ${cls(last.ch)}">${fmtPct(last.ch)} today</div></div>
@@ -100,8 +101,8 @@
     <div class="chart-box"><canvas id="priceChart" height="110" role="img" aria-label="Price history line chart"></canvas><p id="priceNote" class="label" style="color:var(--muted);font-size:.78rem;margin-top:6px"></p></div>
     <div class="chart-box" style="margin-top:14px"><canvas id="volChart" height="60"></canvas><p class="label" id="volNote" style="color:var(--muted);font-size:.78rem;margin-top:6px">Volume traded</p></div>
 
-    <h2>About ${c.name}</h2>
-    <p class="sub" style="color:var(--text)">${c.profile}</p>
+    <h2>About ${esc(c.name)}</h2>
+    <p class="sub" style="color:var(--text)">${esc(c.profile)}</p>
     <p style="margin-top:10px"><a class="sym" href="/">← Back to market overview</a></p>
   `;
 
@@ -186,6 +187,7 @@
   // ── Model View: verdict from /api/forecast ──
   (async () => {
     const sym = new URLSearchParams(location.search).get('sym') || 'AIRTEL';
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     try {
       const r = await fetch('/api/forecast');
       const d = await r.json();
@@ -199,10 +201,10 @@
       const f2 = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2);
       el.innerHTML = `
         <div class="verdict">
-          ${v.stance ? `<span class="v-stance ${stCls}">${v.stance}</span>` : ''}
-          ${v.valuation ? `<span class="v-val ${valCls}">${v.valuation}</span>` : ''}
+          ${v.stance ? `<span class="v-stance ${stCls}">${esc(v.stance)}</span>` : ''}
+          ${v.valuation ? `<span class="v-val ${valCls}">${esc(v.valuation)}</span>` : ''}
         </div>
-        ${v.reasons && v.reasons.length ? `<ul class="v-reasons">${v.reasons.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p class="v-reasons">No strong signal — sits mid-range on value and momentum.</p>'}
+        ${v.reasons && v.reasons.length ? `<ul class="v-reasons">${v.reasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="v-reasons">No strong signal — sits mid-range on value and momentum.</p>'}
         <p class="disc">tech score ${f2(me.techScore)} · value score ${f2(me.valueScore)} · P/B ${me.latestPbv != null ? Number(me.latestPbv).toFixed(2) : '—'} · AI sentiment ${me.aiSignal === 'BULL' ? 'positive' : me.aiSignal === 'BEAR' ? 'negative' : 'neutral'}</p>`;
     } catch (e) {
       const el = document.getElementById('modelCard');

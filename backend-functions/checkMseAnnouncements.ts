@@ -112,7 +112,8 @@ Deno.serve(async (req) => {
     try {
       found = found.concat(await fetcher());
     } catch (e) {
-      sourceErrors.push((e instanceof Error ? e.message : String(e)).slice(0, 100));
+      console.error(`${fetcher.name} fetch failed:`, e);
+      sourceErrors.push(`${fetcher.name} fetch failed`);
     }
   }
 
@@ -170,7 +171,8 @@ Deno.serve(async (req) => {
         telegram = "missing secrets";
       }
     } catch (e) {
-      telegram = `error: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}`;
+      console.error("Telegram notification failed:", e);
+      telegram = "error";
     }
   }
 

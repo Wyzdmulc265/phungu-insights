@@ -8,14 +8,14 @@ const JSON_HEADERS = {
 
 // ─── Live model computation (matches computeMseModel v0.2 logic) ───
 const isoD = (v) => v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
-function zScores(values) {
+export function zScores(values) {
   const defined = values.filter((v) => v != null && isFinite(v));
   if (defined.length < 2) return values.map(() => null);
   const mean = defined.reduce((a, b) => a + b, 0) / defined.length;
   const std = Math.sqrt(defined.reduce((a, b) => a + (b - mean) ** 2, 0) / defined.length) || 1e-9;
   return values.map((v) => (v == null || !isFinite(v)) ? null : (v - mean) / std);
 }
-const band = (score) => score == null ? 'NEUTRAL' : score >= 0.25 ? 'BULL' : score <= -0.25 ? 'BEAR' : 'NEUTRAL';
+export const band = (score) => score == null ? 'NEUTRAL' : score >= 0.25 ? 'BULL' : score <= -0.25 ? 'BEAR' : 'NEUTRAL';
 
 async function forecastPayload(env) {
   const sql = neon(env.NEON_DATABASE_URL);

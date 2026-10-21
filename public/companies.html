@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Companies — Phungu Insights</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css?v=20261005b">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+  <a class="logo" href="/" aria-label="Phungu Insights home">
+    <img class="logo-desk" src="/logo-desktop.png" alt="Phungu Insights" width="155" height="40">
+    <img class="logo-mob" src="/logo-mobile.png" alt="Phungu Insights" width="86" height="54">
+  </a>
+  <nav aria-label="Primary">
+    <a href="/"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6.5h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Market</span></a>
+    <a href="/companies.html" class="active"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M8 7.5h3M8 11h3M8 14.5h3M17 13.5h.01M17 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Companies</span></a>
+    <a href="/outlook.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.9 8.1l-2.1 5.7-5.7 2.1 2.1-5.7z" fill="currentColor"/></svg><span class="ntxt">Outlook</span></a>
+    <a href="/lab.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.2L5.1 17a2.2 2.2 0 0 0 1.9 3.3h10a2.2 2.2 0 0 0 1.9-3.3l-5.4-8.8V3M7.5 13.5h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Lab</span></a>
+      <a href="/learn.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5 8.3 4.5 4.5 4.5v13c3.8 0 5.9.5 7.5 2 1.6-1.5 3.7-2 7.5-2v-13c-3.8 0-5.9.5-7.5 2zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Learn</span></a>
+</nav>
+</div></header>
+
+<div class="container" id="main">
+  <h1>Listed Companies</h1>
+  <p class="sub">All 17 mainboard listings on the Malawi Stock Exchange — background, sector and business profile. Click any company for live charts and fundamentals.</p>
+  <div id="list"></div>
+  <footer>
+    Company profiles are editorial reference content; market data comes from the Malawi Stock Exchange daily reports.
+    <br>© 2026 Wiztech Solutions · Powered by Cloudflare Workers + Neon
+  </footer>
+</div>
+
+<script src="/companies.js"></script>
+<script>
+  const order = ['PCL','NBM','FMBCH','STANDARD','ILLOVO','FDHB','NBS','NICO','OMU','AIRTEL','TNM','SUNBIRD','NITL','SUNBIRD','MPICO','ICON','BHL','CHL'];
+  const seen = new Set();
+  let html = '';
+  for (const sym of order) {
+    if (seen.has(sym) || !COMPANIES[sym]) continue;
+    seen.add(sym);
+    const c = COMPANIES[sym];
+    html += `<div class="card company-card">
+      <h3><a href="/stock.html?sym=${sym}">${c.name}</a> <span class="badge">${sym}</span></h3>
+      <div class="sector">${c.sector}</div>
+      <p>${c.profile}</p>
+      <p style="margin-top:8px"><a class="sym" href="/stock.html?sym=${sym}">View charts &amp; fundamentals →</a></p>
+    </div>`;
+  }
+  document.getElementById('list').innerHTML = html;
+</script>
+</body>
+</html>

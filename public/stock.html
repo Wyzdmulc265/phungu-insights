@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock — Phungu Insights</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css?v=20261005b">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&window.Chart){Chart.defaults.animation=false}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+  <a class="logo" href="/" aria-label="Phungu Insights home">
+    <img class="logo-desk" src="/logo-desktop.png" alt="Phungu Insights" width="155" height="40">
+    <img class="logo-mob" src="/logo-mobile.png" alt="Phungu Insights" width="86" height="54">
+  </a>
+  <nav aria-label="Primary">
+    <a href="/" class="active"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6.5h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Market</span></a>
+    <a href="/companies.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M8 7.5h3M8 11h3M8 14.5h3M17 13.5h.01M17 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Companies</span></a>
+    <a href="/outlook.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.9 8.1l-2.1 5.7-5.7 2.1 2.1-5.7z" fill="currentColor"/></svg><span class="ntxt">Outlook</span></a>
+    <a href="/lab.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.2L5.1 17a2.2 2.2 0 0 0 1.9 3.3h10a2.2 2.2 0 0 0 1.9-3.3l-5.4-8.8V3M7.5 13.5h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Lab</span></a>
+      <a href="/learn.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5 8.3 4.5 4.5 4.5v13c3.8 0 5.9.5 7.5 2 1.6-1.5 3.7-2 7.5-2v-13c-3.8 0-5.9.5-7.5 2zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Learn</span></a>
+</nav>
+</div></header>
+
+<div class="container" id="app">
+  <p class="sub">Loading…</p>
+</div>
+
+<script src="/companies.js"></script>
+<script>
+(async () => {
+  const sym = new URLSearchParams(location.search).get('sym') || 'AIRTEL';
+  const res = await fetch('/api/stock/' + sym);
+  let rows = await res.json();
+  if (res.status === 404) {
+    document.getElementById('app').innerHTML = '<p class="sub">Unknown symbol. <a class="sym" href="/">Back to market</a></p>';
+    return;
+  }
+  rows = rows.map(r => ({ ...r, c: Number(r.c), ch: Number(r.ch), v: Number(r.v), t: r.t == null ? null : Number(r.t), mc: r.mc == null ? null : Number(r.mc), pe: r.pe == null ? null : Number(r.pe), dy: r.dy == null ? null : Number(r.dy), rc: r.rc == null ? null : Number(r.rc), atp: r.atp == null ? null : Number(r.atp) }));
+  const c = (typeof COMPANIES !== 'undefined' && COMPANIES[sym]) || { name: sym, sector: '', profile: 'Company profile coming soon.' };
+  const SPLITS = { PCL: { date: '2026-09-07', ratio: '1:35' }, STANDARD: { date: '2025-07-21', ratio: '1:5' } };
+  const splitInfo = SPLITS[sym] || null;
+  const hasRaw = rows.some(r => r.rc != null && Math.abs(r.rc - r.c) > 0.005);
+  const closes = rows.map(r => r.c);
+  const last = rows[rows.length - 1];
+
+  // returns + risk
+  const closeAt = n => rows.length > n ? rows[rows.length - 1 - n].c : null;
+  const ytdRow = rows.find(r => r.d >= '2026-01-01');
+  const ret = n => closeAt(n) ? (last.c / closeAt(n) - 1) * 100 : null;
+  const rets = [];
+  for (let i = 1; i < closes.length; i++) if (closes[i-1] > 0) rets.push(closes[i]/closes[i-1] - 1);
+  const mean = rets.reduce((a,b) => a+b, 0) / (rets.length || 1);
+  const vol = Math.sqrt(rets.reduce((a,b) => a+(b-mean)*(b-mean), 0) / (rets.length || 1)) * Math.sqrt(252) * 100;
+  let peak = closes[0], mdd = 0;
+  for (const cl of closes) { peak = Math.max(peak, cl); mdd = Math.min(mdd, (cl/peak-1)*100); }
+  const ytd = ytdRow ? (last.c / ytdRow.c - 1) * 100 : null;
+
+  // latest fundamentals
+  const latest = k => { for (let i = rows.length - 1; i >= 0; i--) if (rows[i][k] != null) return rows[i][k]; return null; };
+  const pe = latest('pe'), dy = latest('dy'), mc = latest('mc'), atp = latest('atp');
+  const fmtPct = v => v == null ? '—' : (v >= 0 ? '▲ +' : '▼ ') + v.toFixed(2) + '%';
+  const cls = v => v == null ? '' : (v >= 0 ? 'up' : 'down');
+
+  document.getElementById('app').innerHTML = `
+    <h1>${c.name} <span class="badge">${sym}</span>${hasRaw && splitInfo ? ` <span class="badge" style="color:var(--accent);border-color:var(--accent)">${splitInfo.ratio} share split · ${splitInfo.date}</span>` : ''}</h1>
+    <p class="sub">${c.sector} · Prices as of ${last.d.slice(0,10)} · archive since ${rows[0].d.slice(0,10)}</p>
+
+    <div class="grid">
+      <div class="card"><div class="label">Last Close (MK)</div><div class="value">${Number(last.c).toLocaleString()}</div><div class="label ${cls(last.ch)}">${fmtPct(last.ch)} today</div></div>
+      <div class="card"><div class="label">YTD</div><div class="value ${cls(ytd)}">${fmtPct(ytd)}</div><div class="label">since 2 Jan 2026</div></div>
+      <div class="card"><div class="label">3 Month</div><div class="value ${cls(ret(63))}">${fmtPct(ret(63))}</div><div class="label">1M: ${fmtPct(ret(21))}</div></div>
+      <div class="card"><div class="label">Volatility (ann.)</div><div class="value">${vol.toFixed(1)}%</div><div class="label">daily returns</div></div>
+      <div class="card"><div class="label">Max Drawdown</div><div class="value down">${mdd.toFixed(1)}%</div><div class="label">trough to peak</div></div>
+    </div>
+
+    <div class="fundamentals">
+      <div class="card"><div class="label">P/E Ratio</div><div class="value small">${pe == null ? '—' : Number(pe).toFixed(1)}</div></div>
+      <div class="card"><div class="label">Dividend Yield</div><div class="value small">${dy == null ? '—' : Number(dy).toFixed(2) + '%'}</div></div>
+      <div class="card"><div class="label">Market Cap (MKmn)</div><div class="value small">${mc == null ? '—' : Math.round(mc).toLocaleString()}</div></div>
+      <div class="card"><div class="label">After-Tax Profit (MKmn)</div><div class="value small">${atp == null ? '—' : Math.round(atp).toLocaleString()}</div></div>
+      <div class="card"><div class="label">Trading Days</div><div class="value small">${rows.length}</div></div>
+    </div>
+
+    <section class="model-view" id="modelView">
+      <h2 style="margin:22px 0 4px">Model View</h2>
+      <p class="sub" style="margin-top:0">Verdict from the live model — computed vs the whole market, updated with every close.</p>
+      <div class="card" id="modelCard"><p class="label" style="margin:0">Loading model verdict…</p></div>
+      <p class="disc">Model view: technical momentum decides the stance (Buy / Hold / Sell); the value layer (P/E 40%, dividend yield 30%, P/B 30% vs market) decides the valuation call. AI news sentiment can nudge borderline momentum one notch. Educational output — not investment advice.</p>
+    </section>
+
+    <div class="ranges" id="ranges">
+      <button data-n="21">1M</button><button data-n="63">3M</button><button data-n="ytd" class="active">YTD</button><button data-n="all">All</button>${hasRaw ? '<button id="rawBtn">As-traded</button>' : ''}
+    </div>
+    <div class="chart-box"><canvas id="priceChart" height="110" role="img" aria-label="Price history line chart"></canvas><p id="priceNote" class="label" style="color:var(--muted);font-size:.78rem;margin-top:6px"></p></div>
+    <div class="chart-box" style="margin-top:14px"><canvas id="volChart" height="60"></canvas><p class="label" id="volNote" style="color:var(--muted);font-size:.78rem;margin-top:6px">Volume traded</p></div>
+
+    <h2>About ${c.name}</h2>
+    <p class="sub" style="color:var(--text)">${c.profile}</p>
+    <p style="margin-top:10px"><a class="sym" href="/">← Back to market overview</a></p>
+  `;
+
+  const css = getComputedStyle(document.body);
+  Chart.defaults.color = css.getPropertyValue('--muted');
+  Chart.defaults.borderColor = 'rgba(48,54,61,.5)';
+  let pc, vc, range = 'ytd', asTraded = false;
+
+  function slice() {
+    if (range === 'all') return rows;
+    if (range === 'ytd') return rows.filter(r => r.d >= '2026-01-01');
+    return rows.slice(-parseInt(range));
+  }
+  function draw() {
+    const view = slice();
+    const noteEl = document.getElementById('priceNote');
+    if (noteEl) noteEl.textContent = asTraded
+      ? 'As-traded prices — levels as quoted on the day, so a share split appears as a large price drop.'
+      : 'Split-adjusted prices — comparable across the split.';
+    const up = Number(view[view.length-1].c) >= Number(view[0].c);
+    const col = up ? css.getPropertyValue('--green') : css.getPropertyValue('--red');
+    if (pc) pc.destroy(); if (vc) vc.destroy();
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmtDate(iso) { const [y, m, d] = iso.slice(0, 10).split('-'); return MONTHS[+m - 1] + ' ' + +d + " '" + y.slice(2); }
+
+    pc = new Chart(document.getElementById('priceChart'), {
+      type: 'line',
+      data: { labels: view.map(r => fmtDate(r.d)), datasets: [{
+        data: view.map(r => asTraded && r.rc != null ? r.rc : r.c), borderColor: col, backgroundColor: up ? 'rgba(63,185,80,.07)' : 'rgba(248,81,73,.07)',
+        fill: true, pointRadius: 0, borderWidth: 2, tension: .25
+      }]},
+      options: { plugins: { legend: { display: false } }, interaction: { intersect: false, mode: 'index' },
+        scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } } } }
+    });
+    // ─── adaptive volume aggregation: keep bars readable at any zoom ───
+    // ≤130 pts: daily · ≤500 pts: weekly totals · else: monthly totals
+    let volView, volLabel;
+    if (view.length <= 130) {
+      volLabel = 'daily';
+    } else if (view.length <= 500) {
+      const wk = new Map();
+      for (const r of view) {
+        const dt = new Date(r.d.slice(0, 10) + 'T00:00:00Z');
+        dt.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7)); // Monday of that week
+        const k = dt.toISOString().slice(0, 10);
+        wk.set(k, (wk.get(k) || 0) + Number(r.v || 0));
+      }
+      volView = [...wk.entries()].map(([k, v]) => ({ lbl: fmtDate(k), v }));
+      volLabel = 'weekly totals';
+    } else {
+      const mo = new Map();
+      for (const r of view) {
+        const k = r.d.slice(0, 7);
+        mo.set(k, (mo.get(k) || 0) + Number(r.v || 0));
+      }
+      volView = [...mo.entries()].map(([k, v]) => ({ lbl: fmtDate(k + '-01').replace(/ 1 /, ' '), v }));
+      volLabel = 'monthly totals';
+    }
+    if (view.length <= 130) volView = view.map(r => ({ lbl: fmtDate(r.d), v: r.v }));
+    const volNote = document.getElementById('volNote');
+    if (volNote) volNote.textContent = 'Volume traded — ' + volLabel;
+    vc = new Chart(document.getElementById('volChart'), {
+      type: 'bar',
+      data: { labels: volView.map(r => r.lbl), datasets: [{
+        data: volView.map(r => r.v), backgroundColor: 'rgba(88,166,255,.55)'
+      }]},
+      options: { plugins: { legend: { display: false } },
+        scales: { x: { display: false }, y: { ticks: { callback: v => v >= 1e6 ? (v/1e6)+'M' : v >= 1e3 ? (v/1e3)+'k' : v } } } }
+    });
+  }
+  document.querySelectorAll('#ranges button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#ranges button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); range = b.dataset.n; draw();
+    };
+  });
+  const rawBtn = document.getElementById('rawBtn');
+  if (rawBtn) rawBtn.onclick = () => { asTraded = !asTraded; rawBtn.classList.toggle('active', asTraded); draw(); };
+  draw();
+})();
+
+  // ── Model View: verdict from /api/forecast ──
+  (async () => {
+    const sym = new URLSearchParams(location.search).get('sym') || 'AIRTEL';
+    try {
+      const r = await fetch('/api/forecast');
+      const d = await r.json();
+      const me = (d.stocks || []).find(x => x.symbol === sym);
+      const el = document.getElementById('modelCard');
+      if (!el) return;
+      if (!me || !me.verdict) { el.innerHTML = '<p class="label" style="margin:0">Not enough history yet — model still building.</p>'; return; }
+      const v = me.verdict;
+      const stCls = v.stance === 'BUY' ? 'buy' : v.stance === 'SELL' ? 'sell' : 'hold';
+      const valCls = v.valuation === 'UNDERVALUED' ? 'under' : v.valuation === 'OVERVALUED' ? 'over' : '';
+      const f2 = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2);
+      el.innerHTML = `
+        <div class="verdict">
+          ${v.stance ? `<span class="v-stance ${stCls}">${v.stance}</span>` : ''}
+          ${v.valuation ? `<span class="v-val ${valCls}">${v.valuation}</span>` : ''}
+        </div>
+        ${v.reasons && v.reasons.length ? `<ul class="v-reasons">${v.reasons.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p class="v-reasons">No strong signal — sits mid-range on value and momentum.</p>'}
+        <p class="disc">tech score ${f2(me.techScore)} · value score ${f2(me.valueScore)} · P/B ${me.latestPbv != null ? Number(me.latestPbv).toFixed(2) : '—'} · AI sentiment ${me.aiSignal === 'BULL' ? 'positive' : me.aiSignal === 'BEAR' ? 'negative' : 'neutral'}</p>`;
+    } catch (e) {
+      const el = document.getElementById('modelCard');
+      if (el) el.innerHTML = '<p class="label" style="margin:0">Model verdict unavailable right now.</p>';
+    }
+  })();
+
+
+</script>
+</body>
+</html>

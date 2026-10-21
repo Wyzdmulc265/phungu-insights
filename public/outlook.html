@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phungu Insights — Outlook: Multi-Model Forecast</title>
+<meta name="description" content="Technical, fundamental and AI sentiment model signals for all Malawi Stock Exchange companies, side by side.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css?v=20261005b">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&window.Chart){Chart.defaults.animation=false}</script>
+<script src="/companies.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+  <a class="logo" href="/" aria-label="Phungu Insights home">
+    <img class="logo-desk" src="/logo-desktop.png" alt="Phungu Insights" width="155" height="40">
+    <img class="logo-mob" src="/logo-mobile.png" alt="Phungu Insights" width="86" height="54">
+  </a>
+  <nav aria-label="Primary">
+    <a href="/"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6.5h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Market</span></a>
+    <a href="/companies.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M8 7.5h3M8 11h3M8 14.5h3M17 13.5h.01M17 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Companies</span></a>
+    <a href="/outlook.html" class="active"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.9 8.1l-2.1 5.7-5.7 2.1 2.1-5.7z" fill="currentColor"/></svg><span class="ntxt">Outlook</span></a>
+    <a href="/lab.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.2L5.1 17a2.2 2.2 0 0 0 1.9 3.3h10a2.2 2.2 0 0 0 1.9-3.3l-5.4-8.8V3M7.5 13.5h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Lab</span></a>
+      <a href="/learn.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5 8.3 4.5 4.5 4.5v13c3.8 0 5.9.5 7.5 2 1.6-1.5 3.7-2 7.5-2v-13c-3.8 0-5.9.5-7.5 2zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Learn</span></a>
+</nav>
+</div></header>
+
+<div class="container" id="main">
+  <h1>Outlook — Multi-Model Signals</h1>
+  <p class="sub" id="asof">Loading model signals…</p>
+
+  <div class="grid" id="statcards"></div>
+
+  <h2>Model Quadrants <span class="badge" style="margin-left:8px">latest weekly model run</span></h2>
+  <p class="sub" style="margin-top:-12px">Momentum (vertical) vs value (horizontal). Top-right = strong momentum on cheap fundamentals.</p>
+  <div class="chart-box"><canvas id="quadChart" height="100" role="img" aria-label="Outlook quadrant chart of model scores"></canvas></div>
+
+  <h2>Four Models, Side by Side</h2>
+  <p class="sub" style="margin-top:-12px">Technical &amp; value scores are computed live from the full price archive. The composite and AI sentiment come from the weekly Saturday model run.</p>
+  <div id="cards" class="outlook-grid"></div>
+
+  <div class="card" style="margin-top:28px">
+    <p style="font-size:.85rem; color:var(--muted)">
+      <b>How to read this:</b> the <b>verdict</b> chips combine both layers — a stance (Buy / Hold / Sell, driven by momentum with news sentiment as tiebreaker) and a valuation call (Under / Fairly / Overvalued, from the value model: 40% P/E, 30% dividend yield, 30% P/B vs the rest of the market).
+      Under each stock, the four models still vote bullish / neutral / bearish — a glance at the possibilities, not a prediction. Signals on a 17-stock, thin-liquidity exchange carry wide uncertainty. Nothing here is investment advice.
+    </p>
+  </div>
+</div>
+
+<script>
+const cls = v => v === 'BULL' ? 'bull' : v === 'BEAR' ? 'bear' : 'flat';
+const fmt = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2);
+
+(async () => {
+  const res = await fetch('/api/forecast');
+  const data = await res.json();
+  const stocks = data.stocks;
+  document.getElementById('asof').textContent =
+    `Prices as of ${data.asof} · weekly model run ${data.model_run || 'pending'} · 4 models per stock · not investment advice`;
+
+  const bull = stocks.filter(s => s.consensus.bull >= 3).length;
+  const bear = stocks.filter(s => s.consensus.bear >= 3).length;
+  
+  document.getElementById('statcards').innerHTML = `
+    <div class="card"><div class="label">Strong Consensus Bull</div><div class="value up">${bull}</div><div class="label">≥3 of 4 models bullish</div></div>
+    <div class="card"><div class="label">Strong Consensus Bear</div><div class="value down">${bear}</div><div class="label">≥3 of 4 models bearish</div></div>
+    <div class="card"><div class="label">Stocks Scored</div><div class="value">${stocks.length}</div><div class="label">CHL ${stocks.length < 17 ? 'excluded — needs more history' : 'included'}</div></div>
+    <div class="card"><div class="label">Weekly Model Run</div><div class="value small">${data.model_run || 'first run Sat'}</div><div class="label">Saturdays 09:00 CAT</div></div>`;
+
+  // quadrant scatter (weekly model scores)
+  const pts = stocks.filter(s => s.model && s.model.tech_score != null).map(s => ({
+    x: s.model.value_score, y: s.model.tech_score, sym: s.symbol, q: s.model.signal
+  }));
+  const css = getComputedStyle(document.body);
+  const C = { green: css.getPropertyValue('--green').trim() || '#3fb950', red: css.getPropertyValue('--red').trim() || '#f85149', muted: css.getPropertyValue('--muted').trim() || '#888', text: css.getPropertyValue('--text').trim() || '#eee' };
+  const labelPlug = {
+    id: 'symLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.getDatasetMeta(0).data.forEach((pt, i) => {
+        ctx.save();
+        ctx.font = '10px sans-serif'; ctx.fillStyle = C.text;
+        ctx.fillText(pts[i].sym, pt.x + 6, pt.y - 5);
+        ctx.restore();
+      });
+    }
+  };
+  new Chart(document.getElementById('quadChart'), {
+    type: 'scatter',
+    data: { datasets: [{
+      data: pts,
+      backgroundColor: pts.map(p => /ALIGNED|MOMENTUM/.test(p.q) ? C.green : /WEAK/.test(p.q) ? C.red : C.muted),
+      pointRadius: 5,
+    }]},
+    options: {
+      responsive: true,
+      scales: {
+        x: { title: { display: true, text: 'Value score' }, grid: { color: 'rgba(128,128,128,.15)' } },
+        y: { title: { display: true, text: 'Technical score' }, grid: { color: 'rgba(128,128,128,.15)' } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => `${c.raw.sym} — tech ${fmt(c.raw.y)}, value ${fmt(c.raw.x)} (${c.raw.q})`
+          }
+        }
+      }
+    },
+    plugins: [labelPlug]
+  });
+
+  // per-stock cards
+  const nameOf = s => (typeof COMPANIES !== 'undefined' && COMPANIES[s] && COMPANIES[s].name) || s;
+  document.getElementById('cards').innerHTML = stocks.map(s => {
+    const m = s.model || {};
+    const ai = s.aiSignal === 'NA' ? null : m.sentiment_score;
+    const st = s.verdict && s.verdict.stance, val = s.verdict && s.verdict.valuation;
+    const stCls = st === 'BUY' ? 'buy' : st === 'SELL' ? 'sell' : 'hold';
+    const valCls = val === 'UNDERVALUED' ? 'under' : val === 'OVERVALUED' ? 'over' : '';
+    const vBlock = `
+      <div class="verdict">
+        ${st ? `<span class="v-stance ${stCls}">${st}</span>` : ''}
+        ${val ? `<span class="v-val ${valCls}">${val}</span>` : ''}
+      </div>
+      ${s.verdict && s.verdict.reasons && s.verdict.reasons.length ? `<ul class="v-reasons">${s.verdict.reasons.map(r => `<li>${r}</li>`).join('')}</ul>` : ''}`;
+    const chip = (label, sig, score) => `
+      <span class="chip ${cls(sig)}" title="${label}${score != null ? ': ' + fmt(score) : ''}">
+        ${label} ${sig === 'BULL' ? '▲' : sig === 'BEAR' ? '▼' : '·'} ${score != null ? fmt(score) : ''}
+      </span>`;
+    return `
+    <div class="card outlook-card">
+      <h3 style="margin:0"><a href="/stock.html?sym=${s.symbol}" style="color:var(--text);text-decoration:none">${s.symbol}</a> <span style="font-weight:400;font-size:.85rem;color:var(--muted)">${nameOf(s.symbol)}</span></h3>
+      ${vBlock}
+      <div class="chips">
+        ${chip('TECH', s.techSignal, s.techScore)}
+        ${chip('VALUE', s.valueSignal, s.valueScore)}
+        ${chip('AI', s.aiSignal, ai)}
+        ${chip('MODEL', s.modelSignal, m.tech_score != null && m.value_score != null ? (m.tech_score + m.value_score) / 2 : null)}
+      </div>
+      <div class="consensus ${s.consensus.bull > s.consensus.bear ? 'up' : s.consensus.bear > s.consensus.bull ? 'down' : ''}">
+        ${s.consensus.bull}/4 bullish · ${s.consensus.bear}/4 bearish
+      </div>
+      ${s.quadrant ? `<div class="badge" style="margin-top:8px">${s.quadrant}</div>` : ''}
+      ${m.sentiment_note ? `<p style="font-size:.78rem;color:var(--muted);margin:8px 0 0">AI: ${m.sentiment_note}</p>` : ''}
+    </div>`;
+  }).join('');
+})();
+</script>
+</body>
+</html>

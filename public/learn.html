@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phungu Insights — Learn: How the Numbers Work</title>
+<meta name="description" content="Plain-language explanations of the P/E ratio, dividend yield, price-to-book value, z-scores and the model verdicts used across Phungu Insights.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css?v=20261005d">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+  <a class="logo" href="/" aria-label="Phungu Insights home">
+    <img class="logo-desk" src="/logo-desktop.png" alt="Phungu Insights" width="155" height="40">
+    <img class="logo-mob" src="/logo-mobile.png" alt="Phungu Insights" width="86" height="54">
+  </a>
+  <nav aria-label="Primary">
+    <a href="/"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6.5h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Market</span></a>
+    <a href="/companies.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M8 7.5h3M8 11h3M8 14.5h3M17 13.5h.01M17 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Companies</span></a>
+    <a href="/outlook.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.9 8.1l-2.1 5.7-5.7 2.1 2.1-5.7z" fill="currentColor"/></svg><span class="ntxt">Outlook</span></a>
+    <a href="/lab.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.2L5.1 17a2.2 2.2 0 0 0 1.9 3.3h10a2.2 2.2 0 0 0 1.9-3.3l-5.4-8.8V3M7.5 13.5h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Lab</span></a>
+    <a href="/learn.html" class="active"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5 8.3 4.5 4.5 4.5v13c3.8 0 5.9.5 7.5 2 1.6-1.5 3.7-2 7.5-2v-13c-3.8 0-5.9.5-7.5 2zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Learn</span></a>
+  </nav>
+</div></header>
+
+<div class="container" id="main">
+  <h1>Learn — How the Numbers Work</h1>
+  <p class="sub">Every figure on this site traces back to official Malawi Stock Exchange daily reports. This page explains what each number means and how the model turns them into verdicts.</p>
+
+  <nav class="jump" aria-label="On this page">
+    <span class="jump-label">Jump to:</span>
+    <a href="#pick">How to pick a company</a>
+    <a href="#pe">P/E ratio</a>
+    <a href="#dy">Dividend yield</a>
+    <a href="#pb">Price-to-book</a>
+    <a href="#formula">Value formula</a>
+    <a href="#zscore">Z-scores</a>
+    <a href="#momentum">Momentum</a>
+    <a href="#sentiment">News sentiment</a>
+    <a href="#verdicts">Reading the chips</a>
+    <a href="#dcf">Why no price targets</a>
+    <a href="#limits">Limits</a>
+  </nav>
+
+  <div class="learn-grid">
+
+    <div class="card learn-card" id="pick" style="grid-column: 1 / -1">
+      <h3>How to Pick a Company to Buy <span class="badge" style="margin-left:4px">start here</span></h3>
+      <p>A practical order of operations using this site's own tools. It is not a formula for guaranteed profit — it is a disciplined way to narrow 17 listings down to a decision you can defend.</p>
+      <ul>
+        <li><b>1. Decide what you want.</b> Income (dividends), growth (price appreciation), or stability? On the MSE, income is historically the most reliable of the three.</li>
+        <li><b>2. Start wide, then narrow.</b> Open the <a href="/outlook">Outlook</a> tab and scan the verdict chips. Buy · Undervalued names (rising, still cheap) are the classic hunting ground. Buy · Overvalued means the trend is real but you are paying premium prices. Sell · Undervalued means cheap and still falling — cheapness alone is not a reason.</li>
+        <li><b>3. Open the company page.</b> Check the reasons under the verdict, then the fundamentals: a P/E far above its sector needs a story; a dividend yield needs a payout the company actually sustains; a P/B over 1 means you are paying for more than book value.</li>
+        <li><b>4. Read the reasons, not just the label.</b> "Strong 3M momentum" fades; "dividend yield above market" is cash in hand. Know which kind of gain you are buying.</li>
+        <li><b>5. Check you can actually trade it.</b> Some MSE listings are thin — days pass with almost no volume. Look at the volume bars on the company page before assuming you can buy or exit at the displayed price.</li>
+        <li><b>6. Diversify across sectors.</b> Banks dominate this market's listings. Two bank tickers is one bet, not two.</li>
+        <li><b>7. Decide your exit before you enter.</b> A price you would sell at, a yield drop you would act on, or a thesis that would change your mind. Write it down.</li>
+        <li><b>8. Re-check after each weekly model run.</b> Verdicts move. Revisit your reasons, not just your holdings.</li>
+      </ul>
+      <p class="disc">This is general education about method, not a recommendation of any specific security. Nothing on this site is investment advice.</p>
+    </div>
+
+    <div class="card learn-card" id="pe">
+      <h3>Price-to-Earnings (P/E)</h3>
+      <p>What you pay per kwacha of yearly profit. A P/E of 10 means the share price equals ten years of current earnings.</p>
+      <ul>
+        <li><b>Low P/E</b> → the market is paying little for each kwacha of profit (cheap, or profits expected to fall)</li>
+        <li><b>High P/E</b> → the market is paying a lot (expensive, or growth expected)</li>
+        <li>Loss-making companies have no meaningful P/E — the model leaves them out of that factor instead of inventing a number</li>
+      </ul>
+      <p>On a 17-stock exchange, P/E only means something <i>relative to the other listed companies</i>, which is exactly how the model uses it.</p>
+    </div>
+
+    <div class="card learn-card" id="dy">
+      <h3>Dividend Yield</h3>
+      <p>Cash returned per year as a percentage of the share price. A 5% yield on a 10,000 MK share pays 500 MK a year, regardless of what the price does.</p>
+      <ul>
+        <li>High yield can mean generous payouts — or a price that has fallen</li>
+        <li>Yields move with price: same dividend, lower price, higher yield</li>
+      </ul>
+    </div>
+
+    <div class="card learn-card" id="pb">
+      <h3>Price-to-Book (P/B) <span class="badge" style="margin-left:4px">new</span></h3>
+      <p>The share price versus the company's accounting net worth (book value = assets minus debts on the balance sheet). A P/B of 0.6 means you buy 1 kwacha of net assets for 60 tambala.</p>
+      <ul>
+        <li><b>P/B under 1</b> → trading below book value (e.g. MPICO, ICON historically) — either neglected or its assets earn poorly</li>
+        <li><b>P/B well over 1</b> → the market pays for something the balance sheet doesn't show: brands, licences, customer relationships</li>
+        <li>Malawian banks trade at high P/B because their book grows with retained profits</li>
+      </ul>
+      <p>Unlike a DCF, P/B needs no forecasting — just the balance sheet the exchange already publishes daily. That is why the model uses it.</p>
+    </div>
+
+    <div class="card learn-card" id="formula">
+      <h3>How the Value Layer Combines Them</h3>
+      <p>Each factor is converted to a <b>z-score</b> — how far above or below the market average it sits, measured in standard deviations. Then they are weighted:</p>
+      <p class="kv">value score = 0.40 &times; z(P/E, low=cheap) + 0.30 &times; z(dividend yield) + 0.30 &times; z(P/B, low=cheap)</p>
+      <ul>
+        <li>Positive score → cheaper than the average listed company</li>
+        <li>Negative score → more expensive than average</li>
+        <li>If a factor is missing for a stock, the remaining weights rescale so the score stays honest</li>
+      </ul>
+    </div>
+
+    <div class="card learn-card" id="zscore">
+      <h3>What a Z-Score Is</h3>
+      <p>"z = +1.5" simply means "1.5 standard deviations above the market average." About two-thirds of stocks always sit between −1 and +1 — so anything beyond ±0.5 is worth a look, and beyond ±1 is genuinely unusual.</p>
+      <p>Z-scores let the model compare kwacha prices, percentages and ratios on one honest scale, without pretending to know fair value in absolute terms.</p>
+    </div>
+
+    <div class="card learn-card" id="momentum">
+      <h3>Technical Layer (Momentum)</h3>
+      <ul>
+        <li><b>3-month return</b> — where the price has gone recently (50%)</li>
+        <li><b>1-month return</b> — the fresher trend (30%)</li>
+        <li><b>Price vs 20-day average</b> — trading above or below its recent mean (20%)</li>
+      </ul>
+      <p>The composite is z-scored the same way as the value layer. Strong positive → Buy territory; strong negative → Sell territory; the middle → Hold.</p>
+    </div>
+
+    <div class="card learn-card" id="sentiment">
+      <h3>News Sentiment — the Tiebreaker</h3>
+      <p>Each week, recent company announcements and Malawi market news are scored from −1 (bearish) to +1 (bullish) per stock. Sentiment never overrides a strong signal — it only nudges borderline cases one notch. A stock with middling momentum but positive news becomes Buy; middling momentum with bad news becomes Sell.</p>
+    </div>
+
+    <div class="card learn-card" id="verdicts">
+      <h3>Reading the Verdict Chips</h3>
+      <p>Every company page and the Outlook tab show two chips:</p>
+      <p><span class="v-stance buy">BUY</span> <span class="v-stance hold">HOLD</span> <span class="v-stance sell">SELL</span> &nbsp; the <b>stance</b>, from momentum + sentiment</p>
+      <p><span class="v-val under">UNDERVALUED</span> <span class="v-val">FAIRLY VALUED</span> <span class="v-val over">OVERVALUED</span> &nbsp; the <b>valuation call</b>, from the value layer</p>
+      <ul>
+        <li><b>Buy · Undervalued</b> — rising and still cheap (the combination everyone hunts)</li>
+        <li><b>Buy · Overvalued</b> — momentum is real but you pay premium prices for it</li>
+        <li><b>Sell · Undervalued</b> — cheap and falling; value needs a trigger to turn</li>
+      </ul>
+      <p>Below each verdict are up to three reasons — the specific factors that drove it.</p>
+    </div>
+
+    <div class="card learn-card" id="dcf">
+      <h3>Why No DCF or Price Targets</h3>
+      <p>A discounted cash-flow model needs reliable forecasts of growth and discount rates. The MSE's short, irregular history would force us to invent those inputs — precise-looking arithmetic built on guesses. The z-score approach only claims what the data supports: <i>cheaper or dearer, stronger or weaker, than the rest of this market</i>.</p>
+    </div>
+
+    <div class="card learn-card" id="limits">
+      <h3>Limits You Should Know</h3>
+      <ul>
+        <li>Value factors come from official PDF reports; P/B and P/E refresh when new reports are filed, not every day</li>
+        <li>Thin trading means one large trade can move a "momentum" reading</li>
+        <li>The verdict thresholds are starting points — they will be calibrated against observed outcomes over time</li>
+      </ul>
+      <p class="disc">Everything on this site is educational, derived from public MSE data. Nothing here is investment advice.</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

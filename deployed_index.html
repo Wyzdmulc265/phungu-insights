@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSE Portal — Malawi Stock Exchange Market Intelligence</title>
+<meta name="description" content="Live market data, charts and analysis for all companies listed on the Malawi Stock Exchange.">
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="site"><div class="inner">
+  <a class="logo" href="/">MSE<span>Portal</span></a>
+  <nav>
+    <a href="/" class="active">Market</a>
+    <a href="/companies.html">Companies</a>
+  </nav>
+</div></header>
+
+<div class="container">
+  <h1>Market Overview</h1>
+  <p class="sub" id="asof">Loading latest market data…</p>
+
+  <div class="grid" id="statcards"></div>
+
+  <h2>Equal-Weight MSE Index <span class="badge" style="margin-left:8px">base 100 = first trading day of 2026</span></h2>
+  <div class="chart-box"><canvas id="indexChart" height="90"></canvas></div>
+
+  <h2>All Listed Companies</h2>
+  <table id="tbl">
+    <thead><tr>
+      <th data-k="symbol">Company</th>
+      <th class="num" data-k="close">Close</th>
+      <th class="num" data-k="ch">Day %</th>
+      <th class="num" data-k="r1m">1M %</th>
+      <th class="num" data-k="r3m">3M %</th>
+      <th class="num" data-k="ytd">YTD %</th>
+      <th class="num" data-k="mc">Mkt Cap (MKmn)</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <footer>
+    Market data sourced from the Malawi Stock Exchange, updated each trading day at 09:00, 13:00 and after the 15:00 close.
+    Equal-weight index computed from all mainboard listings. This site is informational — not investment advice.
+    <br>© 2026 Wiztech Solutions · Powered by Cloudflare Workers + Neon
+  </footer>
+</div>
+
+<script src="/companies.js"></script>
+<script>
+(async () => {
+  const res = await fetch('/api/history');
+  const rows = await res.json();
+
+  // group by symbol, sorted by date
+  const bySym = {};
+  for (const r of rows) (bySym[r.s] = bySym[r.s] || []).push(r);
+  for (const s in bySym) bySym[s].sort((a, b) => a.d < b.d ? -1 : 1);
+
+  // per-symbol latest snapshot + returns + latest market cap
+  const stats = {};
+  for (const s in bySym) {
+    const h = bySym[s];
+    const last = h[h.length - 1];
+    const closeAt = n => h.length > n ? h[h.length - 1 - n].c : null;
+    const ytd = h.find(r => r.d >= '2026-01-01');
+    stats[s] = {
+      close: last.c, ch: last.ch, lastd: last.d,
+      r1m: closeAt(21) ? (last.c / closeAt(21) - 1) * 100 : null,
+      r3m: closeAt(63) ? (last.c / closeAt(63) - 1) * 100 : null,
+      ytd: ytd ? (last.c / ytd.c - 1) * 100 : null,
+      mc: (h.slice().reverse().find(r => r.mc != null) || {}).mc || null
+    };
+  }
+  // market cap: fetch latest per symbol via stock endpoint is heavy; derive from history rows? not included in /api/history
+  // -> use /api/stock only on demand. For the table, fetch latest fundamentals in one pass:
+  const latestDate = rows[rows.length - 1].d;
+  document.getElementById('asof').textContent =
+    'Prices as of ' + latestDate + ' · ' + Object.keys(bySym).length + ' mainboard listings · archive since Dec 2025';
+
+  // index series: equal-weight average of per-symbol cumulative return since first trading day of 2026
+  const byDate = {};
+  for (const r of rows) (byDate[r.d] = byDate[r.d] || {})[r.s] = r.c;
+  const dates = Object.keys(byDate).sort();
+  const base = {};
+  const series = [];
+  for (const d of dates) {
+    let sum = 0, n = 0;
+    for (const s in byDate[d]) {
+      if (!(s in base)) base[s] = byDate[d][s];
+      sum += byDate[d][s] / base[s]; n++;
+    }
+    if (n >= 10) series.push({ d, v: (sum / n) * 100 });
+  }
+
+  // stat cards
+  const idx = series[series.length - 1].v;
+  const idxPrev = series[series.length - 2] ? series[series.length - 2].v : idx;
+  const idxChg = idx - 100;
+  let adv = 0, dec = 0;
+  for (const s in stats) { const ch = parseFloat(stats[s].ch) || 0; if (ch > 0) adv++; else if (ch < 0) dec++; }
+  const syms = Object.keys(stats);
+  const ytdVals = syms.map(s => stats[s].ytd).filter(v => v !== null);
+  const best = syms.filter(s => stats[s].ytd !== null).sort((a, b) => stats[b].ytd - stats[a].ytd);
+  const fmt = v => v == null ? '—' : v.toFixed(2);
+  document.getElementById('statcards').innerHTML = `
+    <div class="card"><div class="label">Equal-Weight Index</div><div class="value">${idx.toFixed(1)}</div><div class="label">${idxChg >= 0 ? '+' : ''}${idxChg.toFixed(1)}% in 2026</div></div>
+    <div class="card"><div class="label">Advancers / Decliners</div><div class="value">${adv} <span class="up">▲</span> / ${dec} <span class="down">▼</span></div><div class="label">${latestDate}</div></div>
+    <div class="card"><div class="label">2026 Leader</div><div class="value small">${best[0]} <span class="up">+${fmt(stats[best[0]].ytd)}%</span></div><div class="label">YTD return</div></div>
+    <div class="card"><div class="label">2026 Laggard</div><div class="value small">${best[best.length-1]} <span class="down">${fmt(stats[best[best.length-1]].ytd)}%</span></div><div class="label">YTD return</div></div>
+    <div class="card"><div class="label">Listed Companies</div><div class="value">${syms.length}</div><div class="label">mainboard</div></div>`;
+
+  // index chart
+  const css = getComputedStyle(document.body);
+  Chart.defaults.color = css.getPropertyValue('--muted');
+  Chart.defaults.borderColor = 'rgba(48,54,61,.5)';
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  new Chart(document.getElementById('indexChart'), {
+    type: 'line',
+    data: { labels: series.map(x => x.d.slice(5)), datasets: [{
+      data: series.map(x => +x.v.toFixed(2)),
+      borderColor: css.getPropertyValue('--accent'), backgroundColor: 'rgba(88,166,255,.08)',
+      fill: true, pointRadius: 0, borderWidth: 2, tension: .25
+    }]},
+    options: {
+      plugins: { legend: { display: false } },
+      interaction: { intersect: false, mode: 'index' },
+      scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } } }
+    }
+  });
+
+  // table
+  const tb = document.querySelector('#tbl tbody');
+  let sortKey = 'ytd', sortDesc = true;
+  function render() {
+    const arr = syms.slice().sort((a, b) => {
+      const va = stats[a][sortKey] ?? -1e9, vb = stats[b][sortKey] ?? -1e9;
+      return (sortDesc ? vb - va : va - vb);
+    });
+    tb.innerHTML = arr.map(s => {
+      const st = stats[s];
+      const cls = v => v == null ? '' : (v >= 0 ? 'up' : 'down');
+      const pc = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2);
+      const nm = (window.COMPANIES && COMPANIES[s] && COMPANIES[s].name) || s;
+      return `<tr>
+        <td><a class="sym" href="/stock.html?sym=${s}">${s}</a> <span style="color:var(--muted);font-size:.8rem">${nm}</span></td>
+        <td class="num">${Number(st.close).toLocaleString()}</td>
+        <td class="num ${cls(st.ch)}">${pc(st.ch)}</td>
+        <td class="num ${cls(st.r1m)}">${pc(st.r1m)}</td>
+        <td class="num ${cls(st.r3m)}">${pc(st.r3m)}</td>
+        <td class="num ${cls(st.ytd)}">${pc(st.ytd)}</td>
+        <td class="num">${st.mc == null ? '—' : Math.round(st.mc).toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.querySelectorAll('#tbl th').forEach(th => {
+    th.onclick = () => {
+      const k = th.dataset.k;
+      if (sortKey === k) sortDesc = !sortDesc; else { sortKey = k; sortDesc = true; }
+      render();
+    };
+  });
+  render();
+})();
+</script>
+</body>
+</html>

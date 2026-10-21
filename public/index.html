@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phungu Insights — Malawi Stock Exchange Market Intelligence</title>
+<meta name="description" content="Live market data, charts and analysis for all companies listed on the Malawi Stock Exchange.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css?v=20261005b">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&window.Chart){Chart.defaults.animation=false}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+  <a class="logo" href="/" aria-label="Phungu Insights home">
+    <img class="logo-desk" src="/logo-desktop.png" alt="Phungu Insights" width="155" height="40">
+    <img class="logo-mob" src="/logo-mobile.png" alt="Phungu Insights" width="86" height="54">
+  </a>
+  <nav aria-label="Primary">
+    <a href="/" class="active"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6.5h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Market</span></a>
+    <a href="/companies.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M8 7.5h3M8 11h3M8 14.5h3M17 13.5h.01M17 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Companies</span></a>
+    <a href="/outlook.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.9 8.1l-2.1 5.7-5.7 2.1 2.1-5.7z" fill="currentColor"/></svg><span class="ntxt">Outlook</span></a>
+    <a href="/lab.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.2L5.1 17a2.2 2.2 0 0 0 1.9 3.3h10a2.2 2.2 0 0 0 1.9-3.3l-5.4-8.8V3M7.5 13.5h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Lab</span></a>
+      <a href="/learn.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5 8.3 4.5 4.5 4.5v13c3.8 0 5.9.5 7.5 2 1.6-1.5 3.7-2 7.5-2v-13c-3.8 0-5.9.5-7.5 2zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Learn</span></a>
+</nav>
+</div></header>
+
+<div class="container" id="main">
+  <h1>Market Overview</h1>
+  <p class="sub" id="asof">Loading latest market data…</p>
+
+  <div class="grid" id="statcards"></div>
+
+  <h2>Market Index <span class="badge" style="margin-left:8px" id="baseBadge">base 100</span></h2>
+  <div class="ranges" id="idxToggle" style="margin-bottom:12px">
+    <button data-series="eq" class="active">Equal-Weight</button>
+    <button data-series="masi">MASI (official)</button>
+    <button data-series="dsi">Domestic</button>
+    <button data-series="fsi">Foreign</button>
+  </div>
+  <div class="chart-box"><canvas id="indexChart" height="90" role="img" aria-label="Market index line chart over selected range"></canvas></div>
+
+  <h2>All Listed Companies</h2>
+  <div class="tbl-wrap" tabindex="0" aria-label="Sortable company table, scroll horizontally on small screens">
+  <table id="tbl">
+    <thead><tr>
+      <th data-k="symbol">Company</th>
+      <th class="num" data-k="close">Close</th>
+      <th class="num" data-k="ch">Day %</th>
+      <th class="num" data-k="r1m">1M %</th>
+      <th class="num" data-k="r3m">3M %</th>
+      <th class="num" data-k="ytd">YTD %</th>
+      <th class="num" data-k="mc">Mkt Cap (MKmn)</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+  <footer>
+    Market data sourced from the Malawi Stock Exchange, updated each trading day at 09:00, 13:00 and after the 15:00 close.
+    Equal-weight index computed from all mainboard listings. This site is informational — not investment advice.
+    <br>© 2026 Wiztech Solutions · Powered by Cloudflare Workers + Neon
+  </footer>
+</div>
+
+<script src="/companies.js"></script>
+<script>
+(async () => {
+  const res = await fetch('/api/history');
+  const rows = await res.json();
+  const idxRes = await fetch('/api/index');
+  const idxRows = await idxRes.json();
+  const ofSeries = (k) => idxRows.filter(r => r[k] != null).map(r => ({ d: String(r.d).slice(0, 10), v: Number(r[k]) }));
+  const official = { masi: ofSeries('masi'), dsi: ofSeries('dsi'), fsi: ofSeries('fsi') };
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthYear = iso => MONTHS[Number(iso.slice(5,7)) - 1] + ' ' + iso.slice(0,4);
+
+  // group by symbol, sorted by date
+  const bySym = {};
+  for (const r of rows) {
+    r.c = Number(r.c); r.ch = Number(r.ch); r.v = Number(r.v); r.mc = r.mc == null ? null : Number(r.mc);
+    (bySym[r.s] = bySym[r.s] || []).push(r);
+  }
+  for (const s in bySym) bySym[s].sort((a, b) => a.d < b.d ? -1 : 1);
+
+  // per-symbol latest snapshot + returns + latest market cap
+  const stats = {};
+  for (const s in bySym) {
+    const h = bySym[s];
+    const last = h[h.length - 1];
+    const closeAt = n => h.length > n ? h[h.length - 1 - n].c : null;
+    const ytdBase = h.slice().reverse().find(r => r.d < '2026-01-01') || h.find(r => r.d >= '2026-01-01');
+    stats[s] = {
+      close: last.c, ch: last.ch, lastd: last.d,
+      r1m: closeAt(21) ? (last.c / closeAt(21) - 1) * 100 : null,
+      r3m: closeAt(63) ? (last.c / closeAt(63) - 1) * 100 : null,
+      ytd: ytdBase ? (last.c / ytdBase.c - 1) * 100 : null,
+      mc: (h.slice().reverse().find(r => r.mc != null) || {}).mc || null
+    };
+  }
+  // market cap: fetch latest per symbol via stock endpoint is heavy; derive from history rows? not included in /api/history
+  // -> use /api/stock only on demand. For the table, fetch latest fundamentals in one pass:
+  const latestDate = rows[rows.length - 1].d;
+  document.getElementById('asof').textContent =
+    'Prices as of ' + latestDate.slice(0,10) + ' · ' + Object.keys(bySym).length + ' mainboard listings · archive since ' + monthYear(rows[0].d);
+
+  // index series: equal-weight average of per-symbol cumulative return since the archive's first trading day
+  const byDate = {};
+  for (const r of rows) (byDate[r.d] = byDate[r.d] || {})[r.s] = r.c;
+  const dates = Object.keys(byDate).sort();
+  const base = {};
+  const series = [];
+  for (const d of dates) {
+    let sum = 0, n = 0;
+    for (const s in byDate[d]) {
+      if (!(s in base)) base[s] = byDate[d][s];
+      sum += byDate[d][s] / base[s]; n++;
+    }
+    if (n >= 10) series.push({ d, v: (sum / n) * 100 });
+  }
+
+  document.getElementById('baseBadge').textContent = 'Equal-Weight · base 100 = ' + monthYear(series[0].d);
+  // stat cards
+  const idx = series[series.length - 1].v;
+  const idxPrev = series[series.length - 2] ? series[series.length - 2].v : idx;
+  const idxChg = idx - 100;
+  let adv = 0, dec = 0;
+  for (const s in stats) { const ch = parseFloat(stats[s].ch) || 0; if (ch > 0) adv++; else if (ch < 0) dec++; }
+  const syms = Object.keys(stats);
+  const ytdVals = syms.map(s => stats[s].ytd).filter(v => v !== null);
+  const best = syms.filter(s => stats[s].ytd !== null).sort((a, b) => stats[b].ytd - stats[a].ytd);
+  const fmt = v => v == null ? '—' : v.toFixed(2);
+  const mL = official.masi[official.masi.length - 1] || null;
+  const mP = official.masi[official.masi.length - 2] || null;
+  const mFirst = (official.masi.find(x => x.d >= '2026-01-01') || official.masi[0] || {});
+  const masiDay = mL && mP ? (mL.v / mP.v - 1) * 100 : null;
+  const masiYtd = mL && mFirst.v ? (mL.v / mFirst.v - 1) * 100 : null;
+  const masiCard = mL ? mL.v.toFixed(1) : '—';
+  const masiCls = masiDay == null ? '' : (masiDay >= 0 ? 'up' : 'down');
+  const masiSub = mL ? (masiDay == null ? '' : (masiDay >= 0 ? '+' : '') + masiDay.toFixed(2) + '% day · ') + (masiYtd == null ? '' : (masiYtd >= 0 ? '+' : '') + masiYtd.toFixed(2) + '% YTD') : 'official series unavailable';
+  document.getElementById('statcards').innerHTML = `
+    <div class="card"><div class="label">Equal-Weight Index</div><div class="value">${idx.toFixed(1)}</div><div class="label">${idxChg >= 0 ? '+' : ''}${idxChg.toFixed(1)}% since ${monthYear(series[0].d)}</div></div>
+    <div class="card"><div class="label">Official MASI</div><div class="value">${masiCard}</div><div class="label ${masiCls}">${masiSub}</div></div>
+    <div class="card"><div class="label">Advancers / Decliners</div><div class="value">${adv} <span class="up">▲</span> / ${dec} <span class="down">▼</span></div><div class="label">${latestDate.slice(0,10)}</div></div>
+    <div class="card"><div class="label">2026 Leader</div><div class="value small">${best[0]} <span class="up">+${fmt(stats[best[0]].ytd)}%</span></div><div class="label">YTD return</div></div>
+    <div class="card"><div class="label">2026 Laggard</div><div class="value small">${best[best.length-1]} <span class="down">${fmt(stats[best[best.length-1]].ytd)}%</span></div><div class="label">YTD return</div></div>
+    <div class="card"><div class="label">Listed Companies</div><div class="value">${syms.length}</div><div class="label">mainboard</div></div>`;
+
+  // index chart
+  function fmtDate(iso) { const [y, m, d] = iso.slice(0, 10).split('-'); return MONTHS[+m - 1] + ' ' + +d + " '" + y.slice(2); }
+
+  const css = getComputedStyle(document.body);
+  Chart.defaults.color = css.getPropertyValue('--muted');
+  Chart.defaults.borderColor = 'rgba(48,54,61,.5)';
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  const NAMES = { eq: 'Equal-Weight MSE Index', masi: 'MASI — All Share (official)', dsi: 'Domestic Share Index (official)', fsi: 'Foreign Share Index (official)' };
+  let idxChart = new Chart(document.getElementById('indexChart'), {
+    type: 'line',
+    data: { labels: series.map(x => fmtDate(x.d)), datasets: [{
+      data: series.map(x => +x.v.toFixed(2)),
+      borderColor: css.getPropertyValue('--accent'), backgroundColor: 'rgba(88,166,255,.08)',
+      fill: true, pointRadius: 0, borderWidth: 2, tension: .25
+    }]},
+    options: {
+      plugins: { legend: { display: false } },
+      interaction: { intersect: false, mode: 'index' },
+      scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } } }
+    }
+  });
+  const badge = document.getElementById('baseBadge');
+  document.querySelectorAll('#idxToggle button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#idxToggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const k = b.dataset.series;
+      const data = k === 'eq' ? series : (official[k] || []);
+      if (!data.length) return;
+      idxChart.data.labels = data.map(x => fmtDate(x.d));
+      idxChart.data.datasets[0].data = data.map(x => +x.v.toFixed(2));
+      idxChart.update();
+      badge.textContent = k === 'eq'
+        ? 'Equal-Weight · base 100 = ' + monthYear(series[0].d)
+        : NAMES[k] + ' · since ' + monthYear(data[0].d);
+    };
+  });
+
+  // table
+  const tb = document.querySelector('#tbl tbody');
+  let sortKey = 'ytd', sortDesc = true;
+  function render() {
+    const arr = syms.slice().sort((a, b) => {
+      const va = stats[a][sortKey] ?? -1e9, vb = stats[b][sortKey] ?? -1e9;
+      return (sortDesc ? vb - va : va - vb);
+    });
+    tb.innerHTML = arr.map(s => {
+      const st = stats[s];
+      const cls = v => v == null ? '' : (v >= 0 ? 'up' : 'down');
+      const pc = v => v == null ? '—' : (v >= 0 ? '▲ +' : '▼ ') + v.toFixed(2);
+      const nm = (typeof COMPANIES !== 'undefined' && COMPANIES[s] && COMPANIES[s].name) || s;
+      return `<tr>
+        <td><a class="sym" href="/stock.html?sym=${s}">${s}</a> <span style="color:var(--muted);font-size:.8rem">${nm}</span></td>
+        <td class="num">${Number(st.close).toLocaleString()}</td>
+        <td class="num ${cls(st.ch)}">${pc(st.ch)}</td>
+        <td class="num ${cls(st.r1m)}">${pc(st.r1m)}</td>
+        <td class="num ${cls(st.r3m)}">${pc(st.r3m)}</td>
+        <td class="num ${cls(st.ytd)}">${pc(st.ytd)}</td>
+        <td class="num">${st.mc == null ? '—' : Math.round(st.mc).toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.querySelectorAll('#tbl th').forEach(th => {
+    th.onclick = () => {
+      const k = th.dataset.k;
+      if (sortKey === k) sortDesc = !sortDesc; else { sortKey = k; sortDesc = true; }
+      render();
+    };
+  });
+  render();
+})();
+</script>
+</body>
+</html>

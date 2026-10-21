@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phungu Insights — Portfolio Lab</title>
+<meta name="description" content="Construct and compare Malawi Stock Exchange portfolios with quantitative allocation models: minimum variance, risk parity, momentum and value tilts.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css?v=20261005b">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&window.Chart){Chart.defaults.animation=false}</script>
+<script src="/companies.js"></script>
+<style>
+  /* ── Universe & Window control panel ── */
+  .univ-panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px 20px; margin:14px 0 26px; }
+  .univ-section { margin-top:18px; }
+  .univ-section:first-child { margin-top:0; }
+  .univ-label { color:var(--text); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .univ-label .univ-hint { color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0; font-size:.74rem; }
+
+  /* Window selector: clear pill group, filled active state */
+  .win-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .win-group button {
+    font-size:.85rem; font-weight:600; padding:8px 18px; border-radius:8px;
+    border:1.5px solid var(--border); background:#0d1117; color:var(--muted); cursor:pointer;
+    min-height:38px; transition:background .12s,border-color .12s,color .12s;
+  }
+  .win-group button:hover { border-color:var(--accent); color:var(--text); }
+  .win-group button.active { background:var(--accent); border-color:var(--accent); color:#06101d; font-weight:700; }
+
+  /* Ticker chips: full-contrast active/inactive, visible checkmark */
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip {
+    display:flex; align-items:center; gap:7px; background:#0d1117; border:1.5px solid var(--border);
+    color:var(--text); border-radius:9px; padding:8px 13px; cursor:pointer; font-size:.84rem;
+    text-align:left; min-height:40px; transition:background .12s,border-color .12s,opacity .12s;
+  }
+  .chip .mark { width:16px; height:16px; border-radius:4px; border:1.5px solid var(--muted); flex:none; display:flex; align-items:center; justify-content:center; font-size:.65rem; color:transparent; }
+  .chip b { color:var(--text); font-weight:700; }
+  .chip span { display:block; font-size:.68rem; color:var(--muted); margin-top:1px; }
+  .chip.active { border-color:var(--accent); background:rgba(88,166,255,.14); }
+  .chip.active .mark { background:var(--accent); border-color:var(--accent); color:#06101d; }
+  .chip:not(.active) { opacity:.72; }
+  .chip:not(.active) b, .chip:not(.active) span { color:var(--muted); }
+  .chip:hover { border-color:var(--accent); opacity:1; }
+
+  /* Bottom toolbar: actions, auto-pick switch, N stepper, count badge */
+  .univ-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:16px 22px; }
+  .toolbar-group { display:flex; align-items:center; gap:10px; }
+  .btn-outline {
+    font-size:.82rem; font-weight:600; padding:8px 14px; border-radius:8px; min-height:38px;
+    border:1.5px solid var(--border); background:#0d1117; color:var(--text); cursor:pointer;
+  }
+  .btn-outline:hover { border-color:var(--accent); }
+
+  .switch-wrap { display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+  .switch-wrap input { position:absolute; opacity:0; width:1px; height:1px; }
+  .switch-track {
+    width:42px; height:24px; border-radius:999px; background:#30363d; border:1px solid var(--border);
+    position:relative; flex:none; transition:background .15s;
+  }
+  .switch-track::after {
+    content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background:var(--muted); transition:transform .15s, background .15s;
+  }
+  .switch-wrap input:checked + .switch-track { background:rgba(88,166,255,.35); border-color:var(--accent); }
+  .switch-wrap input:checked + .switch-track::after { transform:translateX(18px); background:var(--accent); }
+  .switch-wrap input:focus-visible + .switch-track { outline:2px solid var(--accent); outline-offset:2px; }
+  .switch-label { font-size:.85rem; color:var(--text); font-weight:600; }
+  .switch-label .sub-hint { display:block; color:var(--muted); font-weight:400; font-size:.72rem; margin-top:1px; }
+
+  .n-stepper { display:flex; align-items:center; gap:0; }
+  .n-stepper button {
+    width:34px; height:38px; border:1.5px solid var(--border); background:#0d1117; color:var(--text);
+    font-size:1rem; font-weight:700; cursor:pointer; line-height:1;
+  }
+  .n-stepper button:first-child { border-radius:8px 0 0 8px; }
+  .n-stepper button:last-child { border-radius:0 8px 8px 0; }
+  .n-stepper button:hover { border-color:var(--accent); color:var(--accent); }
+  #nPick {
+    width:50px; height:38px; background:#0d1117; border:1.5px solid var(--border); border-left:none; border-right:none;
+    color:var(--text); text-align:center; font-size:1rem; font-weight:700; -moz-appearance:textfield;
+  }
+  #nPick::-webkit-outer-spin-button, #nPick::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .n-label { display:flex; flex-direction:column; }
+  .n-label span { font-size:.85rem; color:var(--text); font-weight:600; }
+  .n-label small { font-size:.72rem; color:var(--muted); }
+
+  .count-badge {
+    background:rgba(88,166,255,.12); border:1px solid rgba(88,166,255,.4); color:var(--text);
+    font-size:.82rem; font-weight:600; padding:7px 14px; border-radius:999px; margin-left:auto;
+  }
+  .count-badge b { color:var(--accent); }
+
+  /* Accessible focus ring everywhere in this panel */
+  .univ-panel button:focus-visible, .univ-panel input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  @media (max-width: 640px) {
+    .count-badge { margin-left:0; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+  <a class="logo" href="/" aria-label="Phungu Insights home">
+    <img class="logo-desk" src="/logo-desktop.png" alt="Phungu Insights" width="155" height="40">
+    <img class="logo-mob" src="/logo-mobile.png" alt="Phungu Insights" width="86" height="54">
+  </a>
+  <nav aria-label="Primary">
+    <a href="/"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6.5h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Market</span></a>
+    <a href="/companies.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M8 7.5h3M8 11h3M8 14.5h3M17 13.5h.01M17 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Companies</span></a>
+    <a href="/outlook.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.9 8.1l-2.1 5.7-5.7 2.1 2.1-5.7z" fill="currentColor"/></svg><span class="ntxt">Outlook</span></a>
+    <a href="/lab.html" class="active"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.2L5.1 17a2.2 2.2 0 0 0 1.9 3.3h10a2.2 2.2 0 0 0 1.9-3.3l-5.4-8.8V3M7.5 13.5h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Lab</span></a>
+      <a href="/learn.html"><svg class="nic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5 8.3 4.5 4.5 4.5v13c3.8 0 5.9.5 7.5 2 1.6-1.5 3.7-2 7.5-2v-13c-3.8 0-5.9.5-7.5 2zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="ntxt">Learn</span></a>
+</nav>
+</div></header>
+
+<div class="container" id="main">
+  <h1>Portfolio Lab</h1>
+  <p class="sub" id="asof">Loading market data…</p>
+
+  <h2>Universe &amp; Window</h2>
+  <p class="sub" style="margin-top:-12px">Pick the stocks and the history window used for estimates — or let a model choose for you. Click a chip to include or exclude (minimum two).</p>
+
+  <div class="univ-panel">
+
+    <div class="univ-section">
+      <div class="univ-label">Estimation window <span class="univ-hint">— how much history feeds the model</span></div>
+      <div class="win-group" role="group" aria-label="Estimation window">
+        <button data-w="126" aria-pressed="false">6M</button>
+        <button data-w="252" class="active" aria-pressed="true">1Y</button>
+        <button data-w="504" aria-pressed="false">2Y</button>
+        <button data-w="all" aria-pressed="false">All</button>
+      </div>
+    </div>
+
+    <div class="univ-section">
+      <div class="univ-label">Universe <span class="univ-hint">— click a company to include or exclude it (minimum two)</span></div>
+      <div class="chips" id="chips" role="group" aria-label="Ticker universe"></div>
+    </div>
+
+    <div class="univ-section univ-toolbar">
+      <div class="toolbar-group">
+        <button class="btn-outline" id="selAll" type="button">Select all</button>
+        <button class="btn-outline" id="selCap" type="button">Top N by market cap</button>
+      </div>
+
+      <div class="toolbar-group">
+        <div class="n-label">
+          <span>Portfolio size (N)</span>
+          <small>stocks per model</small>
+        </div>
+        <div class="n-stepper">
+          <button type="button" id="nDown" aria-label="Decrease portfolio size">−</button>
+          <input type="number" id="nPick" min="2" max="17" value="5" aria-label="Portfolio size (number of stocks)">
+          <button type="button" id="nUp" aria-label="Increase portfolio size">+</button>
+        </div>
+      </div>
+
+      <label class="switch-wrap" for="autoPick">
+        <input type="checkbox" id="autoPick" checked>
+        <span class="switch-track" aria-hidden="true"></span>
+        <span class="switch-label">Models auto-pick best<span class="sub-hint">off = you choose the universe manually</span></span>
+      </label>
+
+      <span class="count-badge" id="selCount"></span>
+    </div>
+
+  </div>
+
+  <div class="grid" id="statcards"></div>
+
+  <h2>Risk / Return Map</h2>
+  <p class="sub" style="margin-top:-12px">Grey cloud = 4,000 random portfolios over your universe. The upper edge is the simulated efficient frontier. Marked points are model portfolios and yours.</p>
+  <div class="chart-box"><canvas id="frontChart" height="100" role="img" aria-label="Portfolio efficient frontier chart"></canvas></div>
+
+  <h2>Allocation Models</h2>
+  <p class="sub" style="margin-top:-12px">Click a model to load its weights — with auto-pick on, it first selects its own best N stocks. Then fine-tune with the sliders.</p>
+  <div class="models">
+    <button data-m="equal">Equal Weight</button>
+    <button data-m="minvar">Minimum Variance</button>
+    <button data-m="invvol">Risk Parity (inv. vol)</button>
+    <button data-m="mom">Momentum Tilt</button>
+    <button data-m="val">Value Tilt</button>
+  </div>
+  <div id="sliders" class="wgrid"></div>
+
+  <h2 style="margin-top:32px">About the Models</h2>
+  <div class="card" style="font-size:.87rem; color:var(--muted); line-height:1.55">
+    <b>Minimum Variance</b> (Markowitz): the portfolio with the lowest achievable volatility, from the inverted covariance matrix — historically robust on thin, correlated markets like the MSE. With auto-pick, selection is greedy: start from the least volatile stock, repeatedly add the one that most reduces total variance.
+    <b>Risk Parity</b>: each stock contributes roughly equal risk (approximated by inverse volatility); auto-pick keeps the N least volatile stocks.
+    <b>Momentum / Value Tilts</b>: weights scale with the Outlook page's technical and value z-scores; auto-pick keeps the top N by each score.
+    <b>Equal Weight</b> has no view on which stocks are "best", so auto-pick ranks by risk-adjusted historical return (return ÷ volatility).
+    The window selector changes the data feeding every estimate. Short windows track the current regime but are noisier; long windows (2Y / All) blend the 2024-25 rally, two share splits and the 2026 drawdown into one average that may describe no period in particular.
+    Excluding a stock is not a recommendation to short it. This is an educational tool, not investment advice.
+  </div>
+</div>
+
+<script>
+const nameOf = s => (typeof COMPANIES !== 'undefined' && COMPANIES[s] && COMPANIES[s].name) || s;
+let fullDates = [], fullCloseMap = new Map(), mcMap = new Map(), fcMap = new Map(), totalSyms = 0;
+let DATES = [], ALL = [];
+let SYMS = [], MU = [], COV = [], VOL = [], TECHZ = [], VALZ = [];
+let WS = null; // window stats over ALL: {mu, cov, vol}
+let chart = null, sliders = {};
+const sel = new Set();
+let WIN = { days: 252, label: '1Y' };
+
+// ── linear algebra ──
+function matInv(A) {
+  const n = A.length, M = A.map((row, i) => [...row, ...Array.from({length: n}, (_, j) => i === j ? 1 : 0)]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    const pv = M[c][c] || 1e-12;
+    for (let j = 0; j < 2 * n; j++) M[c][j] /= pv;
+    for (let r = 0; r < n; r++) if (r !== c) {
+      const f = M[r][c];
+      if (f !== 0) for (let j = c; j < 2 * n; j++) M[r][j] -= f * M[c][j];
+    }
+  }
+  return M.map(row => row.slice(n));
+}
+const matVec = (A, v) => A.map(row => row.reduce((a, x, j) => a + x * v[j], 0));
+const normalize = w => { const s = w.reduce((a, b) => a + Math.max(0, b), 0) || 1; return w.map(x => Math.max(0, x) / s); };
+
+function portfolioStats(w) {
+  const ret = w.reduce((a, x, i) => a + x * MU[i], 0);
+  let v = 0;
+  for (let i = 0; i < w.length; i++) for (let j = 0; j < w.length; j++) v += w[i] * w[j] * COV[i][j];
+  return { ret, vol: Math.sqrt(Math.max(v, 0)) };
+}
+
+(async () => {
+  const [histRes, fcRes] = await Promise.all([fetch('/api/history'), fetch('/api/forecast')]);
+  const hist = await histRes.json();
+  const fc = await fcRes.json();
+
+  // full archive (static)
+  fullDates = [...new Set(hist.map(r => r.d.slice(0, 10)))].sort();
+  hist.forEach(r => {
+    const d = r.d.slice(0, 10);
+    if (!fullCloseMap.has(r.s)) fullCloseMap.set(r.s, new Map());
+    fullCloseMap.get(r.s).set(d, Number(r.c));
+    if (r.mc != null) mcMap.set(r.s, Number(r.mc));
+  });
+  totalSyms = fullCloseMap.size;
+  fcMap = new Map(fc.stocks.map(s => [s.symbol, s]));
+
+  // ── window handling ──
+  document.querySelectorAll('.win-group button[data-w]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.win-group button[data-w]').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); });
+      b.classList.add('active'); b.setAttribute('aria-pressed', 'true');
+      WIN = b.dataset.w === 'all'
+        ? { days: fullDates.length, label: 'all history' }
+        : { days: Number(b.dataset.w), label: 'the last ' + b.textContent };
+      buildWindow();
+    };
+  });
+
+  function buildWindow() {
+    DATES = fullDates.slice(-WIN.days);
+    const minDays = Math.max(60, Math.round(DATES.length * 0.7));
+    ALL = [...fullCloseMap.keys()].filter(s => DATES.filter(d => fullCloseMap.get(s).has(d)).length >= minDays);
+    // preserve manual selection where still eligible
+    const keep = [...sel].filter(s => ALL.includes(s));
+    sel.clear();
+    (keep.length >= 2 ? keep : ALL).forEach(s => sel.add(s));
+    // per-symbol stats over ALL symbols in this window
+    const C = DATES.map(d => ALL.map(s => {
+      const m = fullCloseMap.get(s);
+      return m.has(d) ? m.get(d) : null;
+    }));
+    for (let j = 0; j < ALL.length; j++) { // forward-fill gaps
+      let last = null;
+      for (let i = 0; i < C.length; i++) { if (C[i][j] != null) last = C[i][j]; else C[i][j] = last; }
+    }
+    const R = [];
+    for (let i = 1; i < C.length; i++) R.push(C[i].map((c, j) => c && C[i-1][j] ? c / C[i-1][j] - 1 : 0));
+    const T = R.length, N = ALL.length;
+    const mu = Array.from({length: N}, (_, j) => R.reduce((a, r) => a + r[j], 0) / T * 252 * 100);
+    const cov = Array.from({length: N}, (_, i) => Array.from({length: N}, (_, j) =>
+      R.reduce((a, r) => a + (r[i] - mu[i]/252/100) * (r[j] - mu[j]/252/100), 0) / (T - 1) * 252 * 10000));
+    WS = { mu, cov, vol: Array.from({length: N}, (_, j) => Math.sqrt(cov[j][j]) * 100) };
+    const nEl = document.getElementById('nPick');
+    nEl.max = ALL.length;
+    if (Number(nEl.value) > ALL.length) nEl.value = ALL.length;
+    const thin = [...fullCloseMap.keys()].filter(s => !ALL.includes(s));
+    document.getElementById('asof').textContent =
+      `Estimated from ${DATES[0]} to ${DATES[DATES.length-1]} over ${WIN.label} · ${ALL.length} of ${totalSyms} stocks with sufficient history${thin.length ? ' (' + thin.join(', ') + ' lacks history in this window)' : ''} · not investment advice`;
+    rebuild();
+  }
+
+  // ── universe derivation (indexes into WS) ──
+  function computeUniverse() {
+    SYMS = ALL.filter(s => sel.has(s));
+    const idx = SYMS.map(s => ALL.indexOf(s));
+    MU = idx.map(i => WS.mu[i]);
+    VOL = idx.map(i => WS.vol[i]);
+    COV = idx.map(i => idx.map(j => WS.cov[i][j]));
+    TECHZ = SYMS.map(s => (fcMap.get(s) || {}).techScore || 0);
+    VALZ = SYMS.map(s => (fcMap.get(s) || {}).valueScore || 0);
+  }
+
+  const MODELS = [
+    ['equal', 'Equal Weight'],
+    ['minvar', 'Minimum Variance'],
+    ['invvol', 'Risk Parity'],
+    ['mom', 'Momentum Tilt'],
+    ['val', 'Value Tilt'],
+  ];
+  function modelW(kind) {
+    const N = SYMS.length;
+    if (kind === 'equal') return Array(N).fill(1 / N);
+    if (kind === 'minvar') { const inv = matInv(COV.map(r => [...r])); return normalize(matVec(inv, Array(N).fill(1))); }
+    if (kind === 'invvol') return normalize(VOL.map(v => 1 / v));
+    if (kind === 'mom') return normalize(TECHZ.map(z => Math.exp(z)));
+    if (kind === 'val') return normalize(VALZ.map(z => Math.exp(z)));
+  }
+
+  // ── model-driven best-N selection ──
+  function clampN() {
+    const el = document.getElementById('nPick');
+    let n = Math.round(Number(el.value) || 5);
+    n = Math.max(2, Math.min(n, ALL.length));
+    el.value = n;
+    return n;
+  }
+  function minVarW(cand, cov) {
+    const sub = cand.map(i => cand.map(j => cov[i][j]));
+    const inv = matInv(sub.map(r => [...r]));
+    return normalize(matVec(inv, Array(cand.length).fill(1)));
+  }
+  function portVol(w, cand, cov) {
+    let v = 0;
+    for (let i = 0; i < cand.length; i++) for (let j = 0; j < cand.length; j++) v += w[i] * w[j] * cov[cand[i]][cand[j]];
+    return Math.sqrt(Math.max(v, 0));
+  }
+  function pickBest(kind, n) {
+    const A = ALL;
+    const rank = key => A.map((s, i) => [s, key(i)]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    if (kind === 'mom') return rank(i => (fcMap.get(A[i]) || {}).techScore || 0).slice(0, n);
+    if (kind === 'val') return rank(i => (fcMap.get(A[i]) || {}).valueScore || 0).slice(0, n);
+    if (kind === 'equal') return rank(i => WS.vol[i] > 0 ? WS.mu[i] / WS.vol[i] : -1e9).slice(0, n);
+    if (kind === 'invvol') return rank(i => -WS.vol[i]).slice(0, n);
+    if (kind === 'minvar') {
+      const cov = WS.cov;
+      let cand = [0];
+      for (let i = 1; i < A.length; i++) if (WS.vol[i] < WS.vol[cand[0]]) cand[0] = i;
+      while (cand.length < n) {
+        let bestC = -1, bestV = Infinity;
+        for (let c = 0; c < A.length; c++) {
+          if (cand.includes(c)) continue;
+          const trial = [...cand, c];
+          const v = portVol(minVarW(trial, cov), trial, cov);
+          if (v < bestV) { bestV = v; bestC = c; }
+        }
+        if (bestC < 0) break;
+        cand.push(bestC);
+      }
+      return cand.map(i => A[i]);
+    }
+  }
+
+  // ── universe chips ──
+  const chipsHost = document.getElementById('chips');
+  chipsHost.addEventListener('click', e => {
+    const btn = e.target.closest('button.chip');
+    if (!btn) return;
+    const s = btn.dataset.s;
+    if (sel.has(s)) { if (sel.size <= 2) return; sel.delete(s); } else sel.add(s);
+    rebuild();
+  });
+  document.getElementById('selAll').onclick = () => { ALL.forEach(s => sel.add(s)); rebuild(); };
+  document.getElementById('selCap').onclick = () => {
+    const n = clampN();
+    const top = ALL.slice().sort((a, b) => (mcMap.get(a) || 0) - (mcMap.get(b) || 0)).slice(0, n);
+    sel.clear(); top.forEach(s => sel.add(s));
+    rebuild();
+  };
+  document.getElementById('nDown').onclick = () => { document.getElementById('nPick').value = clampN() - 1; clampN(); };
+  document.getElementById('nUp').onclick = () => { document.getElementById('nPick').value = clampN() + 1; clampN(); };
+
+  // ── sliders (rebuilt per universe) ──
+  function buildSliders() {
+    const host = document.getElementById('sliders');
+    sliders = {};
+    host.innerHTML = SYMS.map((s, i) => `
+      <div class="wrow">
+        <div><a href="/stock.html?sym=${s}" style="color:var(--text);text-decoration:none;font-weight:600">${s}</a><div class="wsname">${nameOf(s)}</div></div>
+        <input type="range" min="0" max="40" step="0.5" value="${(100/SYMS.length).toFixed(1)}" data-i="${i}">
+        <div class="wpct" id="wpct-${i}">—</div>
+      </div>`).join('');
+    SYMS.forEach((_, i) => {
+      const el = host.querySelector(`input[data-i="${i}"]`);
+      sliders[i] = el;
+      el.addEventListener('input', render);
+    });
+  }
+
+  function loadWeights(kind) {
+    const w = modelW(kind);
+    w.forEach((x, i) => { sliders[i].value = Math.min(40, x * 100); });
+  }
+  document.querySelectorAll('.models button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (document.getElementById('autoPick').checked) {
+        const picked = pickBest(btn.dataset.m, clampN());
+        sel.clear(); picked.forEach(s => sel.add(s));
+        rebuild();
+      }
+      loadWeights(btn.dataset.m);
+      render();
+    });
+  });
+
+  // ── chart ──
+  const css = getComputedStyle(document.body);
+  const COLORS = { muted: 'rgba(128,128,128,.35)', green: css.getPropertyValue('--green').trim() || '#3fb950', red: css.getPropertyValue('--red').trim() || '#f85149', accent: css.getPropertyValue('--accent').trim() || '#4c8dff', text: css.getPropertyValue('--text').trim() || '#eee' };
+  const rand = n => { // Dirichlet-ish
+    const w = Array.from({length: n}, () => Math.random() ** 2);
+    return normalize(w);
+  };
+
+  function chartData() {
+    const N = SYMS.length;
+    const cloud = [];
+    for (let k = 0; k < 4000; k++) { const st = portfolioStats(rand(N)); cloud.push({ x: st.vol, y: st.ret }); }
+    const modelPts = MODELS.map(([k, label]) => { const st = portfolioStats(modelW(k)); return { x: st.vol, y: st.ret, name: label, key: k }; });
+    return { cloud, modelPts };
+  }
+
+  function initChart() {
+    chart = new Chart(document.getElementById('frontChart'), {
+      type: 'scatter',
+      data: { datasets: [
+        { label: 'Random portfolios', data: [], pointRadius: 1.5, backgroundColor: COLORS.muted },
+        { label: 'Model portfolios', data: [], pointRadius: 7, backgroundColor: COLORS.green, pointStyle: 'rectRot' },
+        { label: 'Your portfolio', data: [{ x: 0, y: 0, name: 'You' }], pointRadius: 8, backgroundColor: COLORS.accent, pointStyle: 'circle' },
+      ]},
+      options: {
+        scales: {
+          x: { title: { display: true, text: 'Expected volatility (% ann.)' }, grid: { color: 'rgba(128,128,128,.12)' }, min: 0 },
+          y: { title: { display: true, text: 'Expected return (% ann.)' }, grid: { color: 'rgba(128,128,128,.12)' } }
+        },
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: c => c.raw.name ? `${c.raw.name}: ${c.raw.y.toFixed(1)}% exp. return, ${c.raw.x.toFixed(1)}% vol` : false } } }
+      }
+    });
+  }
+
+  // ── stat cards ──
+  function render() {
+    const raw = SYMS.map((_, i) => Number(sliders[i].value));
+    const w = normalize(raw);
+    SYMS.forEach((_, i) => {
+      document.getElementById(`wpct-${i}`).textContent = (w[i] * 100).toFixed(1) + '%';
+    });
+    const { ret, vol } = portfolioStats(w);
+    const eqs = portfolioStats(modelW('equal'));
+    const sharpe = vol > 0 ? (ret / vol).toFixed(2) : '—';
+    document.getElementById('statcards').innerHTML = `
+      <div class="card"><div class="label">Expected Return</div><div class="value ${ret >= 0 ? 'up' : 'down'}">${ret.toFixed(1)}%</div><div class="label">annualized, historical basis</div></div>
+      <div class="card"><div class="label">Expected Volatility</div><div class="value">${vol.toFixed(1)}%</div><div class="label">annualized std dev</div></div>
+      <div class="card"><div class="label">Return / Risk</div><div class="value">${sharpe}</div><div class="label">before transaction costs</div></div>
+      <div class="card"><div class="label">vs Equal Weight</div><div class="value small">${(ret - eqs.ret >= 0 ? '+' : '') + (ret - eqs.ret).toFixed(1)}% return · ${(vol - eqs.vol).toFixed(1)}% vol</div><div class="label">equal weight: ${eqs.ret.toFixed(1)}% / ${eqs.vol.toFixed(1)}%</div></div>`;
+    const you = chart.data.datasets[2].data[0];
+    you.x = vol; you.y = ret;
+    chart.update('none');
+  }
+
+  // ── full rebuild on universe or window change ──
+  function rebuild() {
+    chipsHost.innerHTML = ALL.map(s =>
+      `<button class="chip${sel.has(s) ? ' active' : ''}" data-s="${s}" aria-pressed="${sel.has(s)}" title="${sel.has(s) ? 'Click to exclude' : 'Click to include'}">
+        <span class="mark" aria-hidden="true">${sel.has(s) ? '✓' : ''}</span>
+        <span><b>${s}</b><span>${nameOf(s)}</span></span>
+      </button>`).join('');
+    computeUniverse();
+    document.getElementById('selCount').innerHTML = `<b>${SYMS.length}</b> of ${ALL.length} companies selected`;
+    buildSliders();
+    const { cloud, modelPts } = chartData();
+    if (!chart) initChart();
+    chart.data.datasets[0].data = cloud;
+    chart.data.datasets[1].data = modelPts;
+    render();
+  }
+  buildWindow();
+})();
+</script>
+</body>
+</html>

@@ -13,7 +13,14 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.31";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
 function clean(s: string): string {
-  return s.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  // strip HTML by replacing until a fixpoint is reached, so split tags like
+  // "<scr<script>ipt>" cannot reassemble into "<script>" after one pass
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]*>/g, " ");
+  } while (s !== prev);
+  return s.replace(/<|>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function classify(title: string): string {
@@ -105,7 +112,7 @@ Deno.serve(async (req) => {
     try {
       found = found.concat(await fetcher());
     } catch (e) {
-      sourceErrors.push(String(e).slice(0, 100));
+      sourceErrors.push((e instanceof Error ? e.message : String(e)).slice(0, 100));
     }
   }
 
@@ -163,7 +170,7 @@ Deno.serve(async (req) => {
         telegram = "missing secrets";
       }
     } catch (e) {
-      telegram = `error: ${String(e).slice(0, 80)}`;
+      telegram = `error: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}`;
     }
   }
 

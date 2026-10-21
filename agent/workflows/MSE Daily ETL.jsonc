@@ -1,0 +1,47 @@
+{
+  "name": "MSE Daily ETL",
+  "description": "Runs the MSE ETL pipeline as intraday refreshes on weekdays at 9:00 and 13:00 (Africa/Blantyre). The final market-closure scrape runs separately in the \"MSE Final Scrape\" workflow at 15:30.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9,13 * * 1-5",
+      "one_time_date": null,
+      "timezone": "Africa/Blantyre",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "do": [
+      {
+        "run_etl": {
+          "call": "invoke_backend_function",
+          "then": "end",
+          "with": {
+            "args": {
+              "trigger": "scheduled"
+            },
+            "function_name": "runMseEtl"
+          },
+          "x-base44": {
+            "description": "Scrape mse.co.mw \u2192 Base44 + Neon + Telegram",
+            "title": "Run MSE ETL"
+          }
+        }
+      }
+    ],
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mse_daily_etl",
+      "namespace": "base44",
+      "version": "4.0"
+    }
+  }
+}

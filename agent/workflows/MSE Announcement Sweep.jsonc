@@ -1,0 +1,45 @@
+{
+  "name": "MSE Announcement Sweep",
+  "description": "Weekly sweep of MSE announcement feeds (african-markets + Mansa dividend calendar): detects new dividend declarations, AGM notices, trading statements and corporate announcements, stores them in MseAnnouncement, and sends a Telegram alert for anything new.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * 1",
+      "one_time_date": null,
+      "timezone": "Africa/Blantyre",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mse_announcement_sweep",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sweep_announcements": {
+          "call": "invoke_backend_function",
+          "with": {
+            "args": {},
+            "function_name": "checkMseAnnouncements"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sweep announcements",
+            "description": "Fetch feeds, diff, store & alert"
+          }
+        }
+      }
+    ]
+  }
+}

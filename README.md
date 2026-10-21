@@ -39,3 +39,6 @@ backend-functions/ Base44 backend functions (TypeScript): PDF import, batch impo
 
 These run on the Base44 agent platform; secrets (NEON_DATABASE_URL etc.) are injected
 via platform env vars — never hardcoded. See `docs/PROJECT.md` for the full data flow.
+
+`agent/` holds the platform-side config: workflow definitions (with the inline
+agent prompts) and the archival one-off data-ops scripts. See `agent/README.md`.

@@ -1,0 +1,47 @@
+{
+  "name": "MSE Final Scrape",
+  "description": "Final MSE scrape of the day at 15:30 (Africa/Blantyre) \u2014 30 minutes after the 15:00 market close, ensuring the website has posted final closing prices before persisting. This is the run whose data becomes the permanent record for the day.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "30 15 * * 1-5",
+      "one_time_date": null,
+      "timezone": "Africa/Blantyre",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "do": [
+      {
+        "final_scrape": {
+          "call": "invoke_backend_function",
+          "then": "end",
+          "with": {
+            "args": {
+              "trigger": "scheduled_final"
+            },
+            "function_name": "runMseEtl"
+          },
+          "x-base44": {
+            "description": "Post-close scrape \u2014 persists final closing prices",
+            "title": "Final scrape (market close)"
+          }
+        }
+      }
+    ],
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mse_final_scrape",
+      "namespace": "base44",
+      "version": "1.0"
+    }
+  }
+}

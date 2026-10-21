@@ -1,0 +1,70 @@
+{
+  "name": "MSE Model Report",
+  "description": "Weekly Saturday model run: computes technical + fundamental scores for all 17 stocks, AI sentiment step scores the week's announcements and delivers the Telegram report, then signals + sentiment sync to Neon for the public Outlook page.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 * * 6",
+      "one_time_date": null,
+      "timezone": "Africa/Blantyre",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "do": [
+      {
+        "compute_model": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "computeMseModel"
+          },
+          "then": "sentiment_and_report",
+          "x-base44": {
+            "description": "Score all 17 stocks",
+            "title": "Compute technical + fundamental scores"
+          }
+        }
+      },
+      {
+        "sentiment_and_report": {
+          "call": "invoke_superagent_step",
+          "then": "sync_signals",
+          "with": {
+            "message": "This is the weekly MSE Model Report run (Saturday). Today's date: use your system clock; the run date is today in Africa/Blantyre. The compute step has already stored this week's per-stock scores in MseModelSignal (signal labels, tech/value scores, metrics).\n\nYour job, in order:\n\n1. READ CONTEXT: Read all MseModelSignal records for this week's run_date (latest run), plus the MseSentiment entity (prior weeks' sentiment, to compare direction) and MseAnnouncement records from the last 7 days (dividends, AGMs, trading statements, corporate actions).\n\n2. AI SENTIMENT SCORING: For each of the 17 mainboard symbols, assign a sentiment score from -1 (very bearish) to +1 (very bullish), driven by the week's announcements and any major Malawi market news you find. 0 is fine for a quiet week. Base scores on concrete evidence (dividend declarations, strong trading statements, share splits, negative news), not speculation.\n\n3. PERSIST SENTIMENT (important): Save one record per symbol to the MseSentiment entity using create_entity_records \u2014 fields: run_date (today, YYYY-MM-DD), symbol, score (number), note (short driver, max ~80 chars). 17 records total. This feeds the public Outlook page via the sync step that runs right after you.\n\n4. COMPOSE THE WEEKLY TELEGRAM REPORT (compact, Telegram-HTML only: b, i, s, code, pre, a tags \u2014 NO markdown, no br/p/div/ul/li): Market overview (index level/mood), signals grouped by quadrant (ALIGNED BULL / MOMENTUM RICH / VALUE WATCH / WEAK / NEW LISTING), sentiment highlights (only stocks with |score| >= 0.3, with the note), signal changes vs last week, short outlook, and a closing disclaimer that this is a ranking/scenario tool, not investment advice. Keep it under ~1500 characters.\n\n5. DELIVER: Broadcast the report to the owner via Telegram (broadcast_message in your workflow system prompt).\n\nIf MseModelSignal has no rows for today (compute step failed), check MseEtlLog for what happened and report the problem briefly instead of fabricating signals."
+          },
+          "x-base44": {
+            "description": "Sentiment, persist to MseSentiment, Telegram report",
+            "title": "AI sentiment + weekly report"
+          }
+        }
+      },
+      {
+        "sync_signals": {
+          "call": "invoke_backend_function",
+          "then": "end",
+          "with": {
+            "function_name": "syncModelSignalsToNeon"
+          },
+          "x-base44": {
+            "description": "Mirror signals + sentiment for the public Outlook page",
+            "title": "Sync signals to Neon"
+          }
+        }
+      }
+    ],
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mse_model_report",
+      "namespace": "base44",
+      "version": "1.1"
+    }
+  }
+}
